@@ -4,7 +4,7 @@ import os
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QFileDialog, QLabel, QApplication
 
-from node_editor_widget import NodeEditorWidget
+from nodeeditor.node_editor_widget import NodeEditorWidget
 
 
 class NodeEditorWindow(QMainWindow):
@@ -109,7 +109,7 @@ class NodeEditorWindow(QMainWindow):
 
     def openFile(self):
         if self.maybeSave():
-            fname, filter = QFileDialog.getOpenFileName(self, 'Open file', './')
+            fname, filter = QFileDialog.getOpenFileName(self, 'Open file', '../')
             if fname == '':
                 return
             if os.path.isfile(fname):
@@ -126,7 +126,7 @@ class NodeEditorWindow(QMainWindow):
         return True
 
     def saveAsFile(self):
-        fname, filter = QFileDialog.getSaveFileName(self, 'Save file', './')
+        fname, filter = QFileDialog.getSaveFileName(self, 'Save file', '../')
         if fname == '':
             return False
         self.filename = fname

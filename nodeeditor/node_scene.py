@@ -1,12 +1,12 @@
 import json
 from collections import OrderedDict
 
-from node_edge import Edge
-from node_node import Node
-from node_scene_clipboard import SceneClipboard
-from node_serializable import Serializable
-from node_graphics_scene import QDMGraphicsScene
-from node_scene_history import SceneHistory
+from nodeeditor.node_edge import Edge
+from nodeeditor.node_node import Node
+from nodeeditor.node_scene_clipboard import SceneClipboard
+from nodeeditor.node_serializable import Serializable
+from nodeeditor.node_graphics_scene import QDMGraphicsScene
+from nodeeditor.node_scene_history import SceneHistory
 DEBUG = False
 
 class Scene(Serializable):

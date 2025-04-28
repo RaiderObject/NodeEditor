@@ -2,10 +2,10 @@ from PySide6.QtCore import QEvent, Signal
 from PySide6.QtGui import QPainter, Qt, QMouseEvent
 from PySide6.QtWidgets import QGraphicsView, QApplication
 
-from node_edge import EDGE_TYPE_BEZIER, Edge
-from node_graphics_cutline import QDMCutLine
-from node_graphics_edge import QDMGraphicsEdge
-from node_graphics_socket import QDMGraphicsSocket
+from nodeeditor.node_edge import EDGE_TYPE_BEZIER, Edge
+from nodeeditor.node_graphics_cutline import QDMCutLine
+from nodeeditor.node_graphics_edge import QDMGraphicsEdge
+from nodeeditor.node_graphics_socket import QDMGraphicsSocket
 
 MODE_NOOP = 1
 MODE_EDGE_DRAG = 2

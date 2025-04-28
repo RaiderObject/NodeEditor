@@ -1,6 +1,6 @@
 from collections import OrderedDict
-from node_serializable import Serializable
-from node_graphics_edge import QDMGraphicsEdgeDirect, QDMGraphicsEdgeBezier
+from nodeeditor.node_serializable import Serializable
+from nodeeditor.node_graphics_edge import QDMGraphicsEdgeDirect, QDMGraphicsEdgeBezier
 
 EDGE_TYPE_DIRECT = 1
 EDGE_TYPE_BEZIER = 2

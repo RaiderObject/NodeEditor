@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextEdit
 from collections import OrderedDict
-from node_serializable import Serializable
+from nodeeditor.node_serializable import Serializable
 
 DEBUG = False
 
