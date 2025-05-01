@@ -1,10 +1,13 @@
+import os
+from plistlib import InvalidFileException
+
 from PySide6.QtCore import *
 from PySide6.QtGui import QBrush, QPen, QColor, QFont
 from PySide6.QtWidgets import *
 
 from nodeeditor.node_edge import Edge, EDGE_TYPE_BEZIER
 from nodeeditor.node_node import Node
-from nodeeditor.node_scene import Scene
+from nodeeditor.node_scene import Scene, InvalidFile
 from nodeeditor.node_graphics_view import QDMGraphicsView
 
 
@@ -12,8 +15,8 @@ class NodeEditorWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.stylesheet_filename = "qss/nodestyle.qss"
-        self.loadStylesheet(self.stylesheet_filename)
+        self.filename = None
+
         self.initUI()
 
     def initUI(self):
@@ -24,13 +27,66 @@ class NodeEditorWidget(QWidget):
 
         # create a graphics scene
         self.scene = Scene()
-        # self.grScene = self.scene.grScene
-
-        self.addNodes()
 
         #create a graphics view
         self.view = QDMGraphicsView(self.scene.grScene, self)
         self.layout.addWidget(self.view)
+
+    def isModified(self): return self.scene.isModified()
+
+    def isFilenameSet(self): return self.filename != None
+
+    def getSelectedItems(self):
+        return self.scene.getSelectedItems()
+
+    def hasSelectedItems(self):
+        return self.getSelectedItems() != []
+
+    def canUndo(self):
+        return self.scene.history.canUndo()
+
+    def canRedo(self):
+        return self.scene.history.canRedo()
+
+    def getUserFriendlyFileName(self):
+        name = QFileInfo(self.filename).fileName() if self.isFilenameSet() else "New Graph"
+        return name + ("*" if self.isModified() else "")
+
+    def fileNew(self):
+        self.scene.clear()
+        self.filename = None
+        self.scene.history.clear()
+        self.scene.history.storeInitialHistoryStamp()
+
+    def fileLoad(self, filename):
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            self.scene.loadFromFile(filename)
+            self.filename = filename
+
+            self.scene.history.clear()
+            self.scene.history.storeInitialHistoryStamp()
+            return True
+        except InvalidFile as e:
+            print(e)
+            QApplication.restoreOverrideCursor()
+            QMessageBox.warning(self, "Error loading %s" % os.path.basename(filename), str(e))
+            return False
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        return False
+
+    def fileSave(self, filename=None):
+        # when called with empty parameter, we won't store the filename
+        if filename is not None: self.filename = filename
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        self.scene.saveToFile(self.filename)
+        QApplication.restoreOverrideCursor()
+        return True
+
+
+
 
     def addNodes(self):
         node1 = Node(self.scene, "Node 1", inputs=[0, 0, 0], outputs=[1])
@@ -43,6 +99,8 @@ class NodeEditorWidget(QWidget):
 
         edge1 = Edge(self.scene, node1.outputs[0], node2.inputs[0], edge_type=EDGE_TYPE_BEZIER)
         edge2 = Edge(self.scene, node2.outputs[0], node3.inputs[2], edge_type=EDGE_TYPE_BEZIER)
+
+        self.scene.history.storeInitialHistoryStamp()
 
     def addDebugContent(self):
         greenBrush = QBrush(Qt.green)
@@ -72,9 +130,4 @@ class NodeEditorWidget(QWidget):
         line.setFlag(QGraphicsItem.ItemIsMovable)
         line.setFlag(QGraphicsItem.ItemIsSelectable)
 
-    def loadStylesheet(self, filename):
-        print('STYLE loading:', filename)
-        file = QFile(filename)
-        file.open(QFile.ReadOnly | QFile.Text)
-        stylesheet = file.readAll()
-        QApplication.instance().setStyleSheet(str(stylesheet, encoding='utf-8'))
+

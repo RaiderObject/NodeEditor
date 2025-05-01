@@ -1,4 +1,5 @@
 import json
+import os
 from collections import OrderedDict
 
 from nodeeditor.node_edge import Edge
@@ -8,6 +9,8 @@ from nodeeditor.node_serializable import Serializable
 from nodeeditor.node_graphics_scene import QDMGraphicsScene
 from nodeeditor.node_scene_history import SceneHistory
 DEBUG = False
+
+class InvalidFile(Exception): pass
 
 class Scene(Serializable):
     def __init__(self):
@@ -25,6 +28,12 @@ class Scene(Serializable):
         self.initUI()
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
+
+    def isModified(self):
+        return self.has_been_modified
+
+    def getSelectedItems(self):
+        return self.grScene.selectedItems()
 
     @property
     def has_been_modified(self):
@@ -74,19 +83,26 @@ class Scene(Serializable):
         self.has_been_modified = False
 
     def saveToFile(self, filename):
+        if DEBUG: print("Saving to", filename)
         with open(filename, 'w') as file:
             file.write(json.dumps(self.serialize(), indent=4))
-            print("saving to", filename, "was successful")
+            if DEBUG: print("saving to", filename, "was successful")
 
             self.has_been_modified = False
 
     def loadFromFile(self, filename):
         with open(filename, 'r', encoding='utf-8') as file:
             raw_data = file.read()
-            data = json.loads(raw_data)
-            self.deserialize(data)
+            try:
+                data = json.loads(raw_data)
+                self.deserialize(data)
 
-            self.has_been_modified = False
+                self.has_been_modified = False
+
+            except json.JSONDecodeError:
+                raise InvalidFile("%s is not a valid JSON file" % os.path.basename(filename))
+            except Exception as e:
+                print(e)
 
     def serialize(self):
         nodes, edges = [], []
