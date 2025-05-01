@@ -4,7 +4,7 @@ import sys
 
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QColor, QPainterPath
-from PySide6.QtWidgets import QGraphicsPathItem
+from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsItem
 
 from nodeeditor.node_socket import RIGHT_TOP, RIGHT_BOTTOM, LEFT_BOTTOM, LEFT_TOP
 
@@ -16,24 +16,40 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
         self.edge = edge
 
-        self._color = QColor("#111111") # Path Color
-        self._color_selected = QColor("#00FF00") # Selected Path Color
+        # init our flags
+        self._last_selected_state = False
 
+        # init our variables
+        self.posSource = [0, 0]
+        self.posDestination = [200, 100]
+
+        self.initAssets()
+        self.initUI()
+
+    def initUI(self):
+        self.setFlag(QGraphicsItem.ItemIsSelectable)
+        self.setZValue(-1)
+
+    def initAssets(self):
+        self._color = QColor("#001000")
+        self._color_selected = QColor("#00ff00")
         self._pen = QPen(self._color)
         self._pen_selected = QPen(self._color_selected)
         self._pen_dragging = QPen(self._color)
         self._pen_dragging.setStyle(Qt.DashLine)
-
         self._pen.setWidthF(2.0)
         self._pen_selected.setWidthF(2.0)
         self._pen_dragging.setWidthF(2.0)
 
+    def onSelected(self):
+        self.edge.scene.grScene.itemSelected.emit()
 
-        self.setFlag(QGraphicsPathItem.ItemIsSelectable)
-        self.setZValue(-1)
-
-        self.posSource = [0, 0]
-        self.posDestination = [200, 100]
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if self._last_selected_state != self.isSelected():
+            self.edge.scene.resetLastSelectedStates()
+            self._last_selected_state = self.isSelected()
+            self.onSelected()
 
     def setSource(self, x, y):
         self.posSource = [x, y]
