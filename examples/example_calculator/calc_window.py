@@ -5,9 +5,12 @@ from PySide6.QtGui import QAction, QKeySequence, QIcon
 from PySide6.QtWidgets import QMainWindow, QMdiArea, QWidget, QListWidget, QDockWidget, QApplication, QMessageBox, \
     QFileDialog
 
+from examples.example_calculator.calc_drag_listbox import QDMDragListbox
 from nodeeditor.node_editor_window import NodeEditorWindow
 from nodeeditor.utils import dumpException, loadStylesheets, pp
 from examples.example_calculator.calc_sub_window import CalculatorSubWindow
+from examples.example_calculator.calc_conf import CALC_NODES
+from examples.example_calculator.calc_conf_nodes import *
 
 DEBUG = False
 
@@ -22,6 +25,10 @@ class CalculatorWindow(NodeEditorWindow):
 
         self.empty_icon = QIcon(".")
 
+        if DEBUG:
+            print("Registred nodes:")
+            pp(CALC_NODES)
+
         self.mdiArea = QMdiArea()
         self.mdiArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.mdiArea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -35,13 +42,15 @@ class CalculatorWindow(NodeEditorWindow):
         self.windowMapper = QSignalMapper(self)
         self.windowMapper.mappedObject.connect(self.setActiveSubWindow)
 
+        self.createNodesDock()
+
         self.createActions()
         self.createMenus()
         self.createToolBars()
         self.createStatusBar()
         self.updateMenus()
 
-        self.createNodesDock()
+
 
         self.readSettings()
         self.setWindowTitle("Calculator NodeEditor Example")
@@ -160,12 +169,25 @@ class CalculatorWindow(NodeEditorWindow):
 
     def updateWindowMenu(self):
         self.windowMenu.clear()
+
+        toolbar_nodes = QAction("&Nodes Toolbar", self)
+        toolbar_nodes.setCheckable(True)
+        toolbar_nodes.triggered.connect(self.onWindowNodesToolbar)
+        toolbar_nodes.setChecked(self.nodesDock.isVisible())
+        self.windowMenu.addAction(toolbar_nodes)
+
+        self.windowMenu.addSeparator()
+
         self.windowMenu.addAction(self.actClose)
         self.windowMenu.addAction(self.actCloseAll)
+
         self.windowMenu.addSeparator()
+
         self.windowMenu.addAction(self.actTile)
         self.windowMenu.addAction(self.actCascade)
+
         self.windowMenu.addSeparator()
+        
         self.windowMenu.addAction(self.actNext)
         self.windowMenu.addAction(self.actPrevious)
         self.windowMenu.addAction(self.actSeparator)
@@ -186,19 +208,23 @@ class CalculatorWindow(NodeEditorWindow):
             action.triggered.connect(self.windowMapper.map)
             self.windowMapper.setMapping(action, window)
 
+    def onWindowNodesToolbar(self, checked):
+        if self.nodesDock.isVisible():
+            self.nodesDock.hide()
+        else:
+            self.nodesDock.show()
+
     def createToolBars(self):
         pass
 
     def createNodesDock(self):
-        self.listWidget = QListWidget()
-        self.listWidget.addItems(["Add", "Subtract", "Multiply", "Divide"])
+        self.nodesListWidget = QDMDragListbox()
 
+        self.nodesDock = QDockWidget("Nodes")
+        self.nodesDock.setWidget(self.nodesListWidget)
+        self.nodesDock.setFloating(False) # ?
 
-        self.items = QDockWidget("Nodes")
-        self.items.setWidget(self.listWidget)
-        self.items.setFloating(False) # ?
-
-        self.addDockWidget(Qt.RightDockWidgetArea, self.items)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.nodesDock)
 
     def createStatusBar(self):
         self.statusBar().showMessage("Ready")

@@ -10,7 +10,7 @@ from nodeeditor.node_graphics_socket import QDMGraphicsSocket
 MODE_NOOP = 1
 MODE_EDGE_DRAG = 2
 MODE_EDGE_CUT = 3
-DEBUG = True
+DEBUG = False
 
 EDGE_DRAG_START_THRESHOLD = 10.0
 
@@ -37,6 +37,10 @@ class QDMGraphicsView(QGraphicsView):
         self.cutline = QDMCutLine()
         self.grScene.addItem(self.cutline)
 
+        # listeners
+        self._drag_enter_listeners = []
+        self._drop_listeners = []
+
     def initUI(self):
         self.setRenderHints(QPainter.Antialiasing |
                             QPainter.TextAntialiasing |
@@ -50,7 +54,20 @@ class QDMGraphicsView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag) # Selection Rect Mode
 
+        # enable dropping
+        self.setAcceptDrops(True)
 
+    def dragEnterEvent(self, event):
+        for callback in self._drag_enter_listeners: callback(event)
+
+    def dropEvent(self, event):
+        for callback in self._drop_listeners: callback(event)
+
+    def addDragEnterListener(self, callback):
+        self._drag_enter_listeners.append(callback)
+
+    def addDropListener(self, callback):
+        self._drop_listeners.append(callback)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MiddleButton:
@@ -254,7 +271,7 @@ class QDMGraphicsView(QGraphicsView):
         #         print("#", ix, "--", item['desc'])
         #         ix += 1
         # else:
-            super().keyPressEvent(event)
+        super().keyPressEvent(event)
 
 
     def cutIntersectingEdges(self):

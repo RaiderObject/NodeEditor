@@ -4,7 +4,7 @@ from nodeeditor.node_edge import Edge
 from nodeeditor.node_graphics_edge import QDMGraphicsEdge
 from nodeeditor.node_node import Node
 
-DEBUG = False
+DEBUG = True
 class SceneClipboard():
     def __init__(self, scene):
         self.scene = scene
@@ -94,7 +94,7 @@ class SceneClipboard():
 
         # create each node
         for node_data in data['nodes']:
-            new_node = Node(self.scene)
+            new_node = self.scene.getNodeClassFromData(node_data)(self.scene)
             new_node.deserialize(node_data, hashmap, restore_id=False)
 
             # readjust the new node's position

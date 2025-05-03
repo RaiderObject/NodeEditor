@@ -30,6 +30,9 @@ class Scene(Serializable):
         self._item_selected_listeners = []
         self._items_deselected_listeners = []
 
+        # here we can store callback for retrieving the class for Nodes
+        self.node_class_selector = None
+
         self.initUI()
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
@@ -87,6 +90,12 @@ class Scene(Serializable):
     def addItemsDeselectedListener(self, callback):
         self._items_deselected_listeners.append(callback)
 
+    def addDragEnterListener(self, callback):
+        self.grScene.views()[0].addDragEnterListener(callback)
+
+    def addDropListener(self, callback):
+        self.grScene.views()[0].addDropListener(callback)
+
     # custom flag to detect node or edge has been selected....
     def resetLastSelectedStates(self):
         for node in self.nodes:
@@ -141,6 +150,13 @@ class Scene(Serializable):
             except Exception as e:
                 print(e)
 
+    def setNodeClassSelector(self, class_selection_function):
+        """ When the function self.node_class_selector is set, we can use different Node classes."""
+        self.node_class_selector = class_selection_function
+
+    def getNodeClassFromData(self, data):
+        return Node if self.node_class_selector is None else self.node_class_selector(data)
+
     def serialize(self):
         nodes, edges = [], []
         for node in self.nodes: nodes.append(node.serialize())
@@ -162,7 +178,7 @@ class Scene(Serializable):
 
         # create nodes
         for node_data in data['nodes']:
-            Node(self).deserialize(node_data, hashmap, restore_id)
+            self.getNodeClassFromData(node_data)(self).deserialize(node_data, hashmap, restore_id)
 
         # create edges
         # scene, start_socket, end_socket, edge_type

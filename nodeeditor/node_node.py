@@ -12,24 +12,56 @@ class Node(Serializable):
         self._title = title
         self.scene = scene
 
-        self.content = QDMNodeContentWidget(self)
-        self.grNode = QDMGraphicsNode(self)
+        self.initInnerClasses()
+        self.initSettings()
+
         self.title = title
 
         self.scene.addNode(self)
         self.scene.grScene.addItem(self.grNode)
 
-        self.socket_spacing = 22
-
         # create a socket for inputs and outputs
         self.inputs = []
         self.outputs = []
+        self.initSockets(inputs, outputs)
 
+
+
+    def initInnerClasses(self):
+        self.content = QDMNodeContentWidget(self)
+        self.grNode = QDMGraphicsNode(self)
+
+    def initSettings(self):
+        self.socket_spacing = 22
+
+        self.input_socket_position = LEFT_BOTTOM
+        self.output_socket_position = RIGHT_TOP
+        self.input_multi_edged = False
+        self.output_multi_edged = True
+
+    def initSockets(self, inputs, outputs, reset=True):
+        """ Create sockets for inputs and outputs"""
+
+        if reset:
+            # clear old sockets
+            if hasattr(self, 'inputs') and hasattr(self, 'outputs'):
+                # remove grSockets from the scene
+                for socket in (self.inputs + self.outputs):
+                    self.scene.grScene.removeItem(socket.grSocket)
+                self.inputs = []
+                self.outputs = []
+
+        # create new sockets
         for i, item in enumerate(inputs):
-            socket = Socket(node=self, index=i, position=LEFT_BOTTOM, socket_type=item, multi_edges=False)
+            socket = Socket(node=self, index=i, position=self.input_socket_position,
+                            socket_type=item, multi_edges=self.input_multi_edged,
+                            count_on_this_node_side=len(inputs), is_input=True)
             self.inputs.append(socket)
+
         for i, item in enumerate(outputs):
-            socket = Socket(node=self, index=i, position=RIGHT_TOP, socket_type=item, multi_edges=True)
+            socket = Socket(node=self, index=i, position=self.output_socket_position,
+                            socket_type=item, multi_edges=self.output_multi_edged,
+                            count_on_this_node_side = len(outputs), is_input=False)
             self.outputs.append(socket)
 
     def __str__(self):
@@ -51,15 +83,32 @@ class Node(Serializable):
         self._title = value
         self.grNode.title = self._title
 
-    def getSocketPosition(self, index, position):
-        x = 0 if position in (LEFT_TOP, LEFT_BOTTOM) else self.grNode.width
+    def getSocketPosition(self, index, position, num_out_of=1):
+        x = 0 if position in (LEFT_TOP, LEFT_CENTER, LEFT_BOTTOM) else self.grNode.width
 
         if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
             # start from the bottom
-            y = self.grNode.height - self.grNode.edge_size - self.grNode._padding - index * self.socket_spacing
-        else:
+            y = self.grNode.height - self.grNode.edge_roundness - self.grNode.title_horizontal_padding - index * self.socket_spacing
+        elif position in (LEFT_CENTER, RIGHT_CENTER):
+            num_sockets = num_out_of
+            node_height = self.grNode.height
+            top_offset = self.grNode.title_height + 2 * self.grNode.title_vertical_padding + self.grNode.edge_padding
+            available_height = node_height - top_offset
+
+            total_height_of_all_sockets = num_sockets * self.socket_spacing
+            new_top = available_height - total_height_of_all_sockets
+
+            # y = top_offset + index * self.socket_spacing + new_top / 2
+            y = top_offset + available_height / 2 + (index - 0.5)*self.socket_spacing
+            if num_sockets > 1:
+                y -= self.socket_spacing * (num_sockets - 1) / 2
+
+        elif position in (LEFT_TOP, RIGHT_TOP):
             # start from the top
-            y = self.grNode.title_height + self.grNode._padding + self.grNode.edge_size + index * self.socket_spacing
+            y = self.grNode.title_height + self.grNode.title_horizontal_padding + self.grNode.edge_roundness + index * self.socket_spacing
+        else:
+            # this should never happen
+            y = 0
 
         return [x, y]
 
@@ -108,21 +157,26 @@ class Node(Serializable):
 
         data['inputs'].sort(key=lambda socket: socket['index'] + socket['position'] * 10000)
         data['outputs'].sort(key=lambda socket: socket['index'] + socket['position'] * 10000)
+        num_inputs = len(data['inputs'])
+        num_outputs = len(data['outputs'])
 
         self.inputs = []
         for socket_data in data['inputs']:
             new_socket = Socket(node=self, index=socket_data['index'], position=socket_data['position'],
-                                socket_type=socket_data['socket_type'])
+                                socket_type=socket_data['socket_type'], count_on_this_node_side=num_inputs,
+                                is_input=True)
             new_socket.deserialize(socket_data, hashmap, restore_id)
             self.inputs.append(new_socket)
 
         self.outputs = []
         for socket_data in data['outputs']:
             new_socket = Socket(node=self, index=socket_data['index'], position=socket_data['position'],
-                                socket_type=socket_data['socket_type'])
+                                socket_type=socket_data['socket_type'], count_on_this_node_side=num_outputs,
+                                is_input=False)
             new_socket.deserialize(socket_data, hashmap, restore_id)
             self.outputs.append(new_socket)
 
+        # also deserialize the content of the node
+        res = self.content.deserialize(data['content'], hashmap)
 
-
-        return True
+        return True, res

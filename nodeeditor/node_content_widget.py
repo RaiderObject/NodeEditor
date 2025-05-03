@@ -29,14 +29,16 @@ class QDMNodeContentWidget(QWidget, Serializable):
         ])
 
     def deserialize(self, data, hashmap={}):
-        return False
+        return True
 
 ''' set editing flag for key Delete '''
 class QDMTextEdit(QTextEdit):
     def focusInEvent(self, event):
+        print('FOCUS IN')
         self.parentWidget().setEditingFlag(True)
         super().focusInEvent(event)
 
     def focusOutEvent(self, event):
+        print('FOCUS OUT')
         self.parentWidget().setEditingFlag(False)
         super().focusOutEvent(event)
