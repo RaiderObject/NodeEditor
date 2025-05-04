@@ -76,6 +76,9 @@ class Node(Serializable):
         self.markDirty()
         self.markDescendantsDirty()
 
+    def doSelect(self, new_state=True):
+        self.grNode.doSelect(new_state)
+
     def __str__(self):
         return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
 

@@ -4,7 +4,7 @@ import sys
 
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QColor, QPainterPath
-from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsItem
+from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsSceneHoverEvent
 
 from nodeeditor.node_socket import RIGHT_TOP, RIGHT_BOTTOM, LEFT_BOTTOM, LEFT_TOP
 
@@ -18,6 +18,7 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
         # init our flags
         self._last_selected_state = False
+        self.hovered = False
 
         # init our variables
         self.posSource = [0, 0]
@@ -28,21 +29,30 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
     def initUI(self):
         self.setFlag(QGraphicsItem.ItemIsSelectable)
+        self.setAcceptHoverEvents(True)
         self.setZValue(-1)
 
     def initAssets(self):
         self._color = QColor("#001000")
         self._color_selected = QColor("#00ff00")
+        self._color_hovered = QColor("#FF37A6FF")
         self._pen = QPen(self._color)
         self._pen_selected = QPen(self._color_selected)
         self._pen_dragging = QPen(self._color)
+        self._pen_hovered = QPen(self._color_hovered)
         self._pen_dragging.setStyle(Qt.DashLine)
-        self._pen.setWidthF(2.0)
-        self._pen_selected.setWidthF(2.0)
-        self._pen_dragging.setWidthF(2.0)
+        self._pen.setWidthF(3.0)
+        self._pen_selected.setWidthF(3.0)
+        self._pen_dragging.setWidthF(3.0)
+        self._pen_hovered.setWidthF(5.0)
 
     def onSelected(self):
         self.edge.scene.grScene.itemSelected.emit()
+
+    def doSelect(self, new_state=True):
+        self.setSelected(new_state)
+        self._last_selected_state = new_state
+        if new_state: self.onSelected()
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
@@ -50,6 +60,14 @@ class QDMGraphicsEdge(QGraphicsPathItem):
             self.edge.scene.resetLastSelectedStates()
             self._last_selected_state = self.isSelected()
             self.onSelected()
+
+    def hoverEnterEvent(self, event: 'QGraphicsSceneHoverEvent') -> None:
+        self.hovered = True
+        self.update()
+
+    def hoverLeaveEvent(self, event: 'QGraphicsSceneHoverEvent') -> None:
+        self.hovered = False
+        self.update()
 
     def setSource(self, x, y):
         self.posSource = [x, y]
@@ -65,12 +83,16 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         self.setPath(self.calcPath())
+        painter.setBrush(Qt.NoBrush)
+
+        if self.hovered and self.edge.end_socket is not None:
+            painter.setPen(self._pen_hovered)
+            painter.drawPath(self.path())
 
         if self.edge.end_socket is None:
             painter.setPen(self._pen_dragging)
         else:
             painter.setPen(self._pen if not self.isSelected() else self._pen_selected)
-        painter.setBrush(Qt.NoBrush)
         painter.drawPath(self.path())
 
     def intersectsWith(self, p1, p2):
