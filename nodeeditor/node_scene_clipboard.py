@@ -95,7 +95,7 @@ class SceneClipboard():
 
         # calculate mouse pointer -- scene position
         view = self.scene.getView()
-        mouse_scene_pos = view.last_scene_mouse_pos
+        mouse_scene_pos = view.last_scene_mouse_position
         if DEBUG: print("view.last_scene_mouse_position", mouse_scene_pos)
 
         # calculate selected objects, bbox and center

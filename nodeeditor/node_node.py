@@ -186,7 +186,7 @@ class Node(Serializable):
         pass
 
     def onInputChanged(self, socket:'Socket'):
-        """Event handling when Node's input Edge has changed. We auto-mark this `Node` to be `Dirty` with all it's
+        """event handling when Node's input Edge has changed. we auto-mark this `Node` to be `Dirty` with all it's
         descendants
 
         :param socket: reference to the changed :class:`~nodeeditor.node_socket.Socket`
@@ -194,6 +194,11 @@ class Node(Serializable):
         """
         self.markDirty()
         self.markDescendantsDirty()
+
+    def onDeserialized(self, data: dict):
+        """Event manually called when this node was deserialized. Currently called when node is deserialized from scene
+        Passing `data` containing the data which have been deserialized """
+        pass
 
     def onDoubleClicked(self, event):
         """Event handling double click on Graphics Node in `Scene`"""
@@ -252,6 +257,17 @@ class Node(Serializable):
             y = 0
 
         return [x, y]
+
+    def getSocketScenePosition(self, socket: 'Socket') -> '(x, y)':
+        """
+        Get absolute Socket position in the Scene
+
+        :param socket: `Socket` which position we want to know
+        :return: (x, y) Socket's scene position
+        """
+        nodepos = self.grNode.pos()
+        socketpos = self.getSocketPosition(socket.index, socket.position, socket.count_on_this_node_side)
+        return (nodepos.x() + socketpos[0], nodepos.y() + socketpos[1])
 
     def updateConnectedEdges(self):
         """Recalculate (Refresh) positions of all connected `Edges`. Used for updating Graphics Edges"""

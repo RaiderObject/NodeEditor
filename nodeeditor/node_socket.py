@@ -68,7 +68,9 @@ class Socket(Serializable):
         self.edges = []
 
     def __str__(self):
-        return "<Socket %s %s..%s>" % ("ME" if self.is_multi_edges else "SE", hex(id(self))[2:5], hex(id(self))[-3:])
+        return "<Socket #%d %s %s..%s>" % (
+            self.index, "ME" if self.is_multi_edges else "SE", hex(id(self))[2:5], hex(id(self))[-3:]
+        )
 
     def delete(self):
         """Delete this `Socket` from graphics scene for sure"""
@@ -76,16 +78,20 @@ class Socket(Serializable):
         self.node.scene.grScene.removeItem(self.grSocket)
         del self.grSocket
 
-    def changeSocketType(self, new_socket_type: int):
+    def changeSocketType(self, new_socket_type: int) -> bool:
         """
         Change the Socket Type
 
         :param new_socket_type: new socket type
         :type new_socket_type: ``int``
+        :return: Returns ``True`` if the socket type was actually changed
+        :rtype: ``bool``
         """
         if self.socket_type != new_socket_type:
             self.socket_type = new_socket_type
             self.grSocket.changeSocketType()
+            return True
+        return False
 
     def setSocketPosition(self):
         """Helper function to set the ` Graphics Socket ` position. The exact socket position is calculated
@@ -183,5 +189,6 @@ class Socket(Serializable):
     def deserialize(self, data, hashmap={}, restore_id=True):
         if restore_id: self.id = data['id']
         self.is_multi_edges = self.determineMultiEdges(data)
+        self.changeSocketType(data['socket_type'])
         hashmap[data['id']] = self
         return True

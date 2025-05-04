@@ -44,7 +44,7 @@
 #     python_requires=">=3.13",
 #
 #     url='https://github.com/RaiderObject/template',
-#     version="0.9.0",
+#     version="0.9.2",
 #     zip_safe=False,
 # )
 
