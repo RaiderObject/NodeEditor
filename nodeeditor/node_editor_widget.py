@@ -1,5 +1,4 @@
 import os
-from plistlib import InvalidFileException
 
 from PySide6.QtCore import *
 from PySide6.QtGui import QBrush, QPen, QColor, QFont
@@ -13,6 +12,7 @@ from nodeeditor.node_graphics_view import QDMGraphicsView
 
 class NodeEditorWidget(QWidget):
     Scene_class = Scene
+    GraphicsView_class = QDMGraphicsView
 
     """The ``NodeEditorWidget`` class"""
     def __init__(self, parent:QWidget=None):
@@ -42,7 +42,7 @@ class NodeEditorWidget(QWidget):
         self.scene = self.__class__.Scene_class()
 
         #create a graphics view
-        self.view = QDMGraphicsView(self.scene.grScene, self)
+        self.view = self.__class__.GraphicsView_class(self.scene.grScene, self)
         self.layout.addWidget(self.view)
 
     def isModified(self) -> bool:

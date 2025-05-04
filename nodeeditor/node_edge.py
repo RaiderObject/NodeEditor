@@ -4,7 +4,7 @@ A module containing NodeEditor's class for representing Edge and Edge Type Const
 """
 from collections import OrderedDict
 from nodeeditor.node_serializable import Serializable
-from nodeeditor.node_graphics_edge import QDMGraphicsEdgeDirect, QDMGraphicsEdgeBezier
+from nodeeditor.node_graphics_edge import *
 from nodeeditor.utils import dumpException
 
 EDGE_TYPE_DIRECT = 1
@@ -41,7 +41,10 @@ class Edge(Serializable):
 
         self.start_socket = start_socket
         self.end_socket = end_socket
-        self.edge_type = edge_type
+        self._edge_type = edge_type
+
+        # create Graphics Edge instance
+        self.grEdge = self.createEdgeClassInstance()
 
         self.scene.addEdge(self)
 
@@ -111,40 +114,30 @@ class Edge(Serializable):
 
     @edge_type.setter
     def edge_type(self, value):
-        if hasattr(self, 'grEdge') and self.grEdge is not None:
-            self.scene.grScene.removeItem(self.grEdge)
-
+        # assign new value
         self._edge_type = value
-        self.grEdge = self.createEdgeClassInstance(self.edge_type)
 
-        self.scene.grScene.addItem(self.grEdge)
+        # update the grEdge pathCalculator
+        self.grEdge.createEdgePathCalculator()
 
         if self.start_socket is not None:
             self.updatePositions()
 
-    def determineEdgeClass(self, edge_type: int):
-        """
-        Determine Graphics Edge Class from provided `edge_type`
-        :param edge_type: ``int`` type of edge
-        :return: grEdge class
-        :rtype: class of `grEdge`
-        """
+    def getGraphicsEdgeClass(self):
+        """Returns the class representing Graphics Edge"""
+        return QDMGraphicsEdge
 
-        if edge_type == EDGE_TYPE_DIRECT:
-            return QDMGraphicsEdgeDirect
-        else:
-            return QDMGraphicsEdgeBezier
 
-    def createEdgeClassInstance(self, edge_type: int):
+    def createEdgeClassInstance(self):
         """
         Create instance of grEdge class
-        :param edge_type: edge type
-        :type edge_type: ``int``
         :return: Instance of `grEdge` class representing the Graphics Edge in the grScene
         """
-        edgeClass = self.determineEdgeClass(edge_type)
-        edge = edgeClass(self)
-        return edge
+        self.grEdge = self.getGraphicsEdgeClass()(self)
+        self.scene.grScene.addItem(self.grEdge)
+        if self.start_socket is not None:
+            self.updatePositions()
+        return self.grEdge
 
     def getOtherSocket(self, known_socket:'Socket'):
         """
