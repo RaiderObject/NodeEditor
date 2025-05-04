@@ -63,6 +63,7 @@ class CalculatorWindow(NodeEditorWindow):
             self.writeSettings()
             event.accept()
 
+
     def createActions(self):
         super().createActions()
 
@@ -93,10 +94,10 @@ class CalculatorWindow(NodeEditorWindow):
 
 
     def onFileOpen(self):
-        fnames, filter = QFileDialog.getOpenFileNames(self, 'Open graph from file')
+        names, filter = QFileDialog.getOpenFileNames(self, 'Open graph from file', self.getFileDialogDirectory(), self.getFileDialogFilter())
 
         try:
-            for fname in fnames:
+            for fname in names:
                 if fname:
                     existing = self.findMdiChild(fname)
                     if existing:
@@ -198,7 +199,7 @@ class CalculatorWindow(NodeEditorWindow):
         for i, window in enumerate(windows):
             child = window.widget()
 
-            text = "%d %s" % (i + 1, child.getUserFriendlyFileName())
+            text = "%d %s" % (i + 1, child.getUserFriendlyFilename())
             if i < 9:
                 text = '&' + text
 

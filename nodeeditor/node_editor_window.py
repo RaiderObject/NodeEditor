@@ -1,63 +1,80 @@
-import json
+# -*- coding: utf-8 -*-
+"""
+A module containing Main Window class
+"""
 import os
-
+import json
 from PySide6.QtCore import QSettings, QPoint, QSize
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QFileDialog, QLabel, QApplication
-
 from nodeeditor.node_editor_widget import NodeEditorWidget
-from nodeeditor.utils import pp
+
 
 
 class NodeEditorWindow(QMainWindow):
+    NodeEditorWidget_class = NodeEditorWidget
+
+    """Class representing NodeEditor's Main Window"""
     def __init__(self):
+        """
+        :Instance Attributes:
+
+        - **name_company** - name of the company, used for permanent profile settings
+        - **name_product** - name of this App, used for permanent profile settings
+        """
         super().__init__()
 
-        self.name_company = 'Company Name'
-        self.name_product = 'Node Editor'
+        self.name_company = 'Blenderfreak'
+        self.name_product = 'NodeEditor'
 
         self.initUI()
 
+
     def initUI(self):
-        # initialize Menu
+        """Set up this ``QMainWindow``. Create :class:`~nodeeditor.node_editor_widget.NodeEditorWidget`, Actions and Menus"""
         self.createActions()
         self.createMenus()
 
-        self.nodeeditor = NodeEditorWidget(self)
+        # create a node editor widget
+        self.nodeeditor = self.__class__.NodeEditorWidget_class(self)
         self.nodeeditor.scene.addHasBeenModifiedListener(self.setTitle)
         self.setCentralWidget(self.nodeeditor)
 
-        # status bar
         self.createStatusBar()
 
-        # Set window properties
-        self.setGeometry(1600, 500, 800, 600)
+        # set window properties
+        # self.setGeometry(1600, 500, 800, 600)
         self.setTitle()
         self.show()
 
+    def sizeHint(self):
+        return QSize(800, 600)
+
     def createStatusBar(self):
+        """Create Status bar and connect to `Graphics View` scenePosChanged event"""
         self.statusBar().showMessage("Ready", 2000)
-        self.status_mouse_bar = QLabel("")
-        self.statusBar().addPermanentWidget(self.status_mouse_bar)
-        self.nodeeditor.view.scenePosChanged.connect(self.scenePosChanged)
+        self.status_mouse_pos = QLabel("")
+        self.statusBar().addPermanentWidget(self.status_mouse_pos)
+        self.nodeeditor.view.scenePosChanged.connect(self.onScenePosChanged)
         self.statusBar().setSizeGripEnabled(False)
 
         # self.statusBar().setStyleSheet("QStatusBar{background-color: #333333;}")
 
     def createActions(self):
+        """Create basic `File` and `Edit` actions"""
         self.actNew = QAction('&New', self, shortcut='Ctrl+N', statusTip='New file', triggered=self.onFileNew)
         self.actOpen = QAction('&Open', self, shortcut='Ctrl+O', statusTip='Open file', triggered=self.onFileOpen)
         self.actSave = QAction('&Save', self, shortcut='Ctrl+S', statusTip='Save file', triggered=self.onFileSave)
         self.actSaveAs = QAction('&Save As', self, shortcut='Ctrl+Shift+S', statusTip='Save file as', triggered=self.onFileSaveAs)
         self.actExit = QAction('&Exit', self, shortcut='Ctrl+Q', statusTip='Exit application', triggered=self.close)
 
-        self.actUndo = QAction('&Undo', self, shortcut='Ctrl+Z', statusTip='Undo', triggered=self.editUndo)
-        self.actRedo = QAction('&Redo', self, shortcut='Ctrl+Y', statusTip='Redo', triggered=self.editRedo)
-        self.actCut = QAction('&Cut', self, shortcut='Ctrl+X', statusTip='Cut', triggered=self.editCut)
-        self.actCopy = QAction('&Copy', self, shortcut='Ctrl+C', statusTip='Copy', triggered=self.editCopy)
-        self.actPaste = QAction('&Paste', self, shortcut='Ctrl+V', statusTip='Paste', triggered=self.editPaste)
+        self.actUndo = QAction('&Undo', self, shortcut='Ctrl+Z', statusTip='Undo', triggered=self.onEditUndo)
+        self.actRedo = QAction('&Redo', self, shortcut='Ctrl+Y', statusTip='Redo', triggered=self.onEditRedo)
+        self.actCut = QAction('&Cut', self, shortcut='Ctrl+X', statusTip='Cut', triggered=self.onEditCut)
+        self.actCopy = QAction('&Copy', self, shortcut='Ctrl+C', statusTip='Copy', triggered=self.onEditCopy)
+        self.actPaste = QAction('&Paste', self, shortcut='Ctrl+V', statusTip='Paste', triggered=self.onEditPaste)
         self.actSelectAll = QAction('&Select All', self, shortcut='Ctrl+A', statusTip='Select all', triggered=self.passed)
-        self.actDelete = QAction('&Delete', self, shortcut='Del', statusTip='Delete', triggered=self.editDelete)
+        self.actDelete = QAction('&Delete', self, shortcut='Del', statusTip='Delete', triggered=self.onEditDelete)
         self.actSettings = QAction('&Settings', self, shortcut='Ctrl+P', statusTip='Settings', triggered=self.passed)
         self.actRun = QAction('&Run', self, shortcut='F5', statusTip='Run', triggered=self.passed)
         self.actRunAll = QAction('&Run All', self, shortcut='F6', statusTip='Run all', triggered=self.passed)
@@ -66,6 +83,11 @@ class NodeEditorWindow(QMainWindow):
         self.actCheckForWarnings = QAction('&Check for Warnings', self, shortcut='F9', statusTip='Check for warnings', triggered=self.passed)
 
     def createMenus(self):
+        """Create Menus for `File` and `Edit`"""
+        self.createFileMenu()
+        self.createEditMenu()
+
+    def createFileMenu(self):
         menubar = self.menuBar()
         self.fileMenu = menubar.addMenu('&File')
         self.fileMenu.addAction(self.actNew)
@@ -75,6 +97,8 @@ class NodeEditorWindow(QMainWindow):
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.actExit)
 
+    def createEditMenu(self):
+        menubar = self.menuBar()
         self.editMenu = menubar.addMenu('&Edit')
         self.editMenu.addAction(self.actUndo)
         self.editMenu.addAction(self.actRedo)
@@ -101,26 +125,44 @@ class NodeEditorWindow(QMainWindow):
         # self.viewMenu = menubar.addMenu('&View')
         # self.helpMenu = menubar.addMenu('&Help')
 
-
     def setTitle(self):
+        """Function responsible for setting window title"""
         title = 'Node Editor - '
-        title += self.getCurrentNodeEditorWidget().getUserFriendlyFileName()
+        title += self.getCurrentNodeEditorWidget().getUserFriendlyFilename()
 
         self.setWindowTitle(title)
 
     def closeEvent(self, event):
-            if self.maybeSave():
-                event.accept()
-            else:
-                event.ignore()
+        """Handle close event. Ask before we lose work"""
+        if self.maybeSave():
+            event.accept()
+        else:
+            event.ignore()
 
-    def isModified(self):
+
+    def isModified(self) -> bool:
+        """Has current: class:`~nodeeditor.node_scene.Scene` been modified?
+
+        :return: ``True`` if current: class:`~nodeeditor.node_scene.Scene` has been modified
+        :rtype: ``bool``
+        """
         return self.getCurrentNodeEditorWidget().scene.isModified()
 
-    def getCurrentNodeEditorWidget(self):
+    def getCurrentNodeEditorWidget(self) -> NodeEditorWidget:
+        """get current :class:`~nodeeditor.node_editor_widget`
+
+        :return: get current :class:`~nodeeditor.node_editor_widget`
+        :rtype: :class:`~nodeeditor.node_editor_widget`
+        """
         return self.centralWidget()
 
-    def maybeSave(self):
+    def maybeSave(self) -> bool:
+        """If current `Scene` is modified, ask a dialog to save the changes. Used before
+        closing window / mdi child document
+
+        :return: ``True`` if we can continue in the `Close Event` and shutdown. ``False`` if we should cancel
+        :rtype: ``bool``
+        """
         if not self.isModified():
             return True
 
@@ -134,10 +176,26 @@ class NodeEditorWindow(QMainWindow):
 
         return True
 
-    def scenePosChanged(self, x, y):
-        self.status_mouse_bar.setText("Scene Pos: (%d, %d)" % (x, y))
+    def onScenePosChanged(self, x:int, y:int):
+        """Handle event when cursor position changed on the `Scene`
+
+        :param x: new cursor x position
+        :type x:
+        :param y: new cursor y position
+        :type y:
+        """
+        self.status_mouse_pos.setText("Scene Pos: [%d, %d]" % (x, y))
+
+    def getFileDialogDirectory(self):
+        """Returns starting directory for ``QFileDialog`` file open/save"""
+        return ''
+
+    def getFileDialogFilter(self):
+        """Returns ``str`` standard file open/save filter for ``QFileDialog``"""
+        return 'Graph (*.json);;All files (*)'
 
     def onFileNew(self):
+        """Hande File New operation"""
         if self.maybeSave():
             self.getCurrentNodeEditorWidget().fileNew()
             self.setTitle()
@@ -145,14 +203,16 @@ class NodeEditorWindow(QMainWindow):
 
 
     def onFileOpen(self):
+        """Handle File Open operation"""
         if self.maybeSave():
-            fname, filter = QFileDialog.getOpenFileName(self, 'Open graph from file')
+            fname, filter = QFileDialog.getOpenFileName(self, 'Open graph from file', self.getFileDialogDirectory(), self.getFileDialogFilter())
             if fname != '' and os.path.isfile(fname):
                 self.getCurrentNodeEditorWidget().fileLoad(fname)
                 self.setTitle()
                 self.statusBar().showMessage("File loaded from " + fname, 2000)
 
     def onFileSave(self):
+        """Handle File Save operation"""
         current_nodeeditor = self.getCurrentNodeEditorWidget()
         if current_nodeeditor is not None:
             if not current_nodeeditor.isFilenameSet(): return self.onFileSaveAs()
@@ -170,9 +230,10 @@ class NodeEditorWindow(QMainWindow):
 
 
     def onFileSaveAs(self):
+        """Handle File Save As operation"""
         current_nodeeditor = self.getCurrentNodeEditorWidget()
         if current_nodeeditor is not None:
-            fname, filter = QFileDialog.getSaveFileName(self, 'Save graph to file')
+            fname, filter = QFileDialog.getSaveFileName(self, 'Save graph to file', self.getFileDialogDirectory(), self.getFileDialogFilter())
             if fname == '': return False
 
             current_nodeeditor.fileSave(fname)
@@ -188,36 +249,42 @@ class NodeEditorWindow(QMainWindow):
 
 
 
-    def editUndo(self):
+    def onEditUndo(self):
+        """Handle Edit Undo operation"""
         if self.getCurrentNodeEditorWidget():
             self.getCurrentNodeEditorWidget().scene.history.undo()
             self.statusBar().showMessage("Undo", 2000)
 
-    def editRedo(self):
+    def onEditRedo(self):
+        """Handle Edit Redo operation"""
         if self.getCurrentNodeEditorWidget():
             self.getCurrentNodeEditorWidget().scene.history.redo()
             self.statusBar().showMessage("Redo", 2000)
 
-    def editDelete(self):
+    def onEditDelete(self):
+        """Handle Delete Selected operation"""
         if self.getCurrentNodeEditorWidget():
             self.getCurrentNodeEditorWidget().scene.getView().deleteSelected()
             self.statusBar().showMessage("Delete", 2000)
 
-    def editCut(self):
+    def onEditCut(self):
+        """Handle Edit Cut to clipboard operation"""
         if self.getCurrentNodeEditorWidget():
             data = self.getCurrentNodeEditorWidget().scene.clipboard.serializeSelected(delete=True)
             str_data = json.dumps(data, indent=4)
             QApplication.clipboard().setText(str_data)
             self.statusBar().showMessage("Cut", 2000)
 
-    def editCopy(self):
+    def onEditCopy(self):
+        """Handle Edit Copy to clipboard operation"""
         if self.getCurrentNodeEditorWidget():
             data = self.getCurrentNodeEditorWidget().scene.clipboard.serializeSelected(delete=False)
             str_data = json.dumps(data, indent=4)
             QApplication.clipboard().setText(str_data)
             self.statusBar().showMessage("Copy", 2000)
 
-    def editPaste(self):
+    def onEditPaste(self):
+        """Handle Edit Paste from the clipboard operation"""
         if self.getCurrentNodeEditorWidget():
             raw_data = QApplication.instance().clipboard().text()
             try:
@@ -226,18 +293,21 @@ class NodeEditorWindow(QMainWindow):
                 print("Pasting of non-valid JSON data has been denied.", e)
                 return
 
-        # check if the JSON data are correct
-        if 'nodes' not in data:
-            print("JSON does not contain any nodes!")
-            return
+            # check if the JSON data are correct
+            if 'nodes' not in data:
+                print("JSON does not contain any nodes!")
+                return
 
-        self.getCurrentNodeEditorWidget().scene.clipboard.deserializeFromClipboard(data)
-        self.statusBar().showMessage("Pasted", 2000)
+            self.statusBar().showMessage("Pasted", 2000)
+            return self.getCurrentNodeEditorWidget().scene.clipboard.deserializeFromClipboard(data)
+        return None
+
 
     def passed(self):
         pass
 
     def readSettings(self):
+        """Read the permanent profile settings for this app"""
         settings = QSettings(self.name_company, self.name_product)
         pos = settings.value('pos', QPoint(200, 200))
         size = settings.value('size', QSize(400, 400))
@@ -245,6 +315,7 @@ class NodeEditorWindow(QMainWindow):
         self.resize(size)
 
     def writeSettings(self):
+        """Write the permanent profile settings for this app"""
         settings = QSettings(self.name_company, self.name_product)
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())

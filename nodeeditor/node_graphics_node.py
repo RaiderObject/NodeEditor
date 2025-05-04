@@ -1,24 +1,59 @@
+# -*- coding: utf-8 -*-
+"""
+A module containing Graphics representation of :class:`~nodeeditor.node_node.Node`
+"""
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QFont, QPainterPath, QColor, QPen, QBrush
-from PySide6.QtWidgets import QGraphicsItem, QGraphicsTextItem, QGraphicsProxyWidget, QGraphicsSceneHoverEvent
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsTextItem, QGraphicsProxyWidget, QGraphicsSceneHoverEvent, QWidget
 
 
 class QDMGraphicsNode(QGraphicsItem):
-    def __init__(self, node, parent=None):
+    """Class describing Graphics representation of :class:`~nodeeditor.node_node.Node`"""
+    def __init__(self, node:'Node', parent:QWidget=None):
+        """
+        :param node: reference to :class:`~nodeeditor.node_node.Node`
+        :type node: :class:`~nodeeditor.node_node.Node`
+        :param parent: parent widget
+        :type parent: QWidget
+
+        :Instance Attributes:
+
+            - **node** - reference to :class:`~nodeeditor.node_node.Node`
+        """
         super().__init__(parent)
         self.node = node
-        self.content = self.node.content
 
         # init our flags
+        self.hovered = False
         self._was_moved = False
         self._last_selected_state = False
-        self.hovered = False
 
         self.initSizes()
         self.initAssets()
         self.initUI()
 
+    @property
+    def content(self):
+        """Reference to `Node Content`"""
+        return self.node.content if self.node else None
+
+    @property
+    def title(self):
+        """title of this `Node`
+
+        :getter: current Graphics Node title
+        :setter: stores and make visible the new title
+        :type: str
+        """
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+        self.title_item.setPlainText(self._title)
+
     def initUI(self):
+        """Set up this ``QGraphicsItem``"""
         self.setFlag(QGraphicsItem.ItemIsSelectable)
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setAcceptHoverEvents(True)
@@ -39,6 +74,7 @@ class QDMGraphicsNode(QGraphicsItem):
         self.title_vertical_padding = 4.0
 
     def initAssets(self):
+        """Set up internal attributes like `width`, `height`, etc."""
         self._title_color = Qt.white
         self._title_font = QFont("Ubuntu", 10)
 
@@ -57,14 +93,21 @@ class QDMGraphicsNode(QGraphicsItem):
         self._brush_background = QBrush(QColor("#FF212121"))
 
     def onSelected(self):
+        """Our event handling when the node was selected"""
         self.node.scene.grScene.itemSelected.emit()
 
     def doSelect(self, new_state=True):
+        """Safe version of selecting the `Graphics Node`. Takes care about the selection state flag used internally
+
+        :param new_state: ``True`` to select, ``False`` to deselect
+        :type new_state: ``bool``
+        """
         self.setSelected(new_state)
         self._last_selected_state = new_state
         if new_state: self.onSelected()
 
     def mouseMoveEvent(self, event):
+        """Overriden event to detect that we moved with this `Node`"""
         super().mouseMoveEvent(event)
 
         # optimize me! just update the selected nodes
@@ -74,6 +117,7 @@ class QDMGraphicsNode(QGraphicsItem):
         self._was_moved = True
 
     def mouseReleaseEvent(self, event):
+        """Overriden event to handle when we moved, selected or deselected this `Node`"""
         super().mouseReleaseEvent(event)
 
         # handle when grNode moved
@@ -82,7 +126,7 @@ class QDMGraphicsNode(QGraphicsItem):
             self.node.scene.history.storeHistory("Node moved", setModified=True)
 
             self.node.scene.resetLastSelectedStates()
-            self._last_selected_state = True
+            self.doSelect() # also trigger itemSelected when node was moved
 
             # we need to store the last selected state, because moving does also select the nodes
             self.node.scene._last_selected_items = self.node.scene.getSelectedItems()
@@ -96,30 +140,31 @@ class QDMGraphicsNode(QGraphicsItem):
             self._last_selected_state = self.isSelected()
             self.onSelected()
 
+    def mouseDoubleClickEvent(self, event):
+        """Overriden event for doubleclick. Resend to `Node::onDoubleClicked`"""
+        self.node.onDoubleClicked(event)
+
     def hoverEnterEvent(self, event: 'QGraphicsSceneHoverEvent') -> None:
+        """Handle hover effect"""
         self.hovered = True
         self.update()
 
     def hoverLeaveEvent(self, event: 'QGraphicsSceneHoverEvent') -> None:
+        """Handle hover effect"""
         self.hovered = False
         self.update()
 
-    @property
-    def title(self):
-        return self._title
-    @title.setter
-    def title(self, value):
-        self._title = value
-        self.title_item.setPlainText(self._title)
-
-    def boundingRect(self):
-        return QRectF(0,
-                      0,
-                      self.width,
-                      self.height
-                ).normalized()
+    def boundingRect(self) -> QRectF:
+        """Defining Qt' bounding rectangle"""
+        return QRectF(
+            0,
+            0,
+            self.width,
+            self.height
+        ).normalized()
 
     def initTitle(self):
+        """Set up the title Graphics representation: font, color, position, etc."""
         self.title_item = QGraphicsTextItem(self)
         self.title_item.node = self.node
         self.title_item.setDefaultTextColor(self._title_color)
@@ -131,14 +176,18 @@ class QDMGraphicsNode(QGraphicsItem):
         )
 
     def initContent(self):
-        self.grContent = QGraphicsProxyWidget(self)
-        self.content.setGeometry(self.edge_padding, self.title_height + self.edge_padding,
-                                 self.width - 2 * self.edge_padding,
-                                 self.height - 2 * self.edge_padding - self.title_height)
-        self.grContent.setWidget(self.content)
+        """Set up the `grContent` - ``QGraphicsProxyWidget`` to have a container for `Graphics Content`"""
+        if self.content is not None:
+            self.content.setGeometry(self.edge_padding, self.title_height + self.edge_padding,
+                                     self.width - 2 * self.edge_padding,
+                                     self.height - 2 * self.edge_padding - self.title_height)
+
+        # get the QGraphicsProxyWidget when inserted into the grScene
+        self.grContent = self.node.scene.grScene.addWidget(self.content)
+        self.grContent.setParentItem(self)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
-
+        """Painting the rounded rectanglar `Node`"""
         # title
         path_title = QPainterPath()
         path_title.setFillRule(Qt.WindingFill)
@@ -162,7 +211,7 @@ class QDMGraphicsNode(QGraphicsItem):
 
         # outline
         path_outline = QPainterPath()
-        path_outline.addRoundedRect(0, 0, self.width, self.height, self.edge_roundness, self.edge_roundness)
+        path_outline.addRoundedRect(-1, -1, self.width+2, self.height+2, self.edge_roundness, self.edge_roundness)
         painter.setBrush(Qt.NoBrush)
         if self.hovered:
             painter.setPen(self._pen_hovered)

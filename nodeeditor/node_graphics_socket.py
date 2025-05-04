@@ -1,31 +1,66 @@
-from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QPen, QBrush
-from PySide6.QtWidgets import QGraphicsItem
+# -*- coding: utf-8 -*-
+"""
+A module containing Graphics representation of a :class:`~nodeeditor.node_socket.Socket`
+"""
+from PySide6.QtCore import *
+from PySide6.QtGui import *
+from PySide6.QtWidgets import *
+
+SOCKET_COLORS = [
+    QColor("#FFFF7700"),
+    QColor("#FF52e220"),
+    QColor("#FF0056a6"),
+    QColor("#FFa86db1"),
+    QColor("#FFb54747"),
+    QColor("#FFdbe220"),
+    QColor("#FF888888"),
+]
 
 
 class QDMGraphicsSocket(QGraphicsItem):
-    def __init__(self, socket, socket_type=1):
+    """Class representing Graphic `Socket` in ``QGraphicsScene``"""
+    def __init__(self, socket):
+        """
+                :param socket: reference to :class:`~nodeeditor.node_socket.Socket`
+                :type socket: :class:`~nodeeditor.node_socket.Socket`
+                """
+
         self.socket = socket
         super().__init__(socket.node.grNode)
 
         self.radius = 6.0
         self.outline_width = 1.0
-        self._colors = [
-            QColor("#FFFF7700"),
-            QColor("#FF52e220"),
-            QColor("#FF0056a6"),
-            QColor("#FFa86db1"),
-            QColor("#FFb54747"),
-            QColor("#FFdbe220"),
-        ]
+        self.initAssets()
 
-        self._color_background = self._colors[socket_type]
+    @property
+    def socket_type(self):
+        return self.socket.socket_type
+
+    def getSocketColor(self, key):
+        """Returns the ``QColor`` for this ``key``"""
+        if type(key) == int:
+            return SOCKET_COLORS[key]
+        elif type(key) == str:
+            return QColor(key)
+        return Qt.transparent
+
+    def changeSocketType(self):
+        """Change the Socket Type"""
+        self._color_background = self.getSocketColor(self.socket_type)
+        self._brush = QBrush(self._color_background)
+        # print("Socket changed to:", self._color_background.getRgbF())
+        self.update()
+
+    def initAssets(self):
+        """Initialize ``QObjects`` like ``QColor``, ``QPen`` and ``QBrush``"""
+
+        # determine socket color
+        self._color_background = self.getSocketColor(self.socket_type)
         self._color_outline = QColor("#FF000000")
 
         self._pen = QPen(self._color_outline)
         self._pen.setWidthF(self.outline_width)
         self._brush = QBrush(self._color_background)
-
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         # painting circle

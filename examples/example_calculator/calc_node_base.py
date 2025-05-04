@@ -6,6 +6,7 @@ from nodeeditor.node_node import Node
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.node_graphics_node import QDMGraphicsNode
 from nodeeditor.node_socket import LEFT_CENTER, RIGHT_CENTER
+from nodeeditor.utils import dumpException
 
 
 class CalcGraphicsNode(QDMGraphicsNode):
@@ -49,18 +50,16 @@ class CalcNode(Node):
     content_label = ""
     content_label_objname = "calc_node_bg"
 
+    GraphicsNode_class = CalcGraphicsNode
+    NodeContent_class = CalcContent
+
     def __init__(self, scene, inputs=[2,2], outputs=[1]):
         super().__init__(scene, self.__class__.op_title, inputs, outputs)
 
         self.value = None
 
-
         # it's really important to mark all nodes Dirty by Default
         self.markDirty()
-
-    def initInnerClasses(self):
-        self.content = CalcContent(self)
-        self.grNode = CalcGraphicsNode(self)
 
     def initSettings(self):
         super().initSettings()
@@ -107,10 +106,8 @@ class CalcNode(Node):
             self.grNode.setToolTip(str(e))
             print("%s ERROR: %s" % (e.__class__.__name__, e))
 
-
-
-    def onInputChanged(self, new_edge):
-        print("%s::onInputChanged" % self.__class__.__name__, new_edge)
+    def onInputChanged(self, socket=None):
+        print("%s::__onInputChanged" % self.__class__.__name__)
         self.markDirty()
         self.eval()
 
