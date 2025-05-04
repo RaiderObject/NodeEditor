@@ -187,7 +187,6 @@ class QDMGraphicsView(QGraphicsView):
             if self.distanceBetweenClickAndReleaseIsOff(event):
                 res = self.edgeDragEnd(item)
                 try:
-                    print(f'RES::{res}')
                     if res: return
                 except Exception as e:
                     print("ERROR:", e)
@@ -311,12 +310,15 @@ class QDMGraphicsView(QGraphicsView):
         return obj
 
     def edgeDragStart(self, item):
-        if DEBUG: print('View::edgeDragStart - Start dragging edge... ')
-        if DEBUG: print('View::edgeDragStart -     assign Start Socket to:', item.socket)
-        # self.previousEdge = item.socket.edges
-        self.drag_start_socket = item.socket
-        self.drag_edge = Edge(self.grScene.scene, item.socket, None, EDGE_TYPE_BEZIER)
-        if DEBUG: print('View::edgeDragStart -     dragEdge:', self.drag_edge)
+        try:
+            if DEBUG: print('View::edgeDragStart - Start dragging edge... ')
+            if DEBUG: print('View::edgeDragStart -     assign Start Socket to:', item.socket)
+            # self.previousEdge = item.socket.edges
+            self.drag_start_socket = item.socket
+            self.drag_edge = Edge(self.grScene.scene, item.socket, None, EDGE_TYPE_BEZIER)
+            if DEBUG: print('View::edgeDragStart -     dragEdge:', self.drag_edge)
+        except Exception as e:
+            print("%s2 ERROR:",e.__class__.__name__ , e)
 
     def edgeDragEnd(self, item):
         """ return True if skip the rest of the code"""
@@ -326,50 +328,32 @@ class QDMGraphicsView(QGraphicsView):
         self.drag_edge.remove()
         self.drag_edge = None
 
-        if type(item) is QDMGraphicsSocket:
-            if item.socket != self.drag_start_socket:
-                # if we released dragging on a socket (other than the beginning socket)
+        try:
+            if type(item) is QDMGraphicsSocket:
+                if item.socket != self.drag_start_socket:
+                    # if we released dragging on a socket (other than the beginning socket)
 
-                # if DEBUG: print('View::edgeDragEnd -   previous edge:', self.previousEdge)
-                # if item.socket.hasEdge():
-                #     item.socket.edges.remove()
-                # for edge in item.socket.edges:
-                #     if DEBUG: print('View::edgeDragEnd -   removing edges in target:', edge)
-                #     edge.remove()
-                #     if DEBUG: print('View::edgeDragEnd -   removing edges in target:', edge, 'Removed')
+                    # we want to keep all the edges coming from a target socket
+                    if not item.socket.is_multi_edges:
+                        item.socket.removeAllEdges()
 
-                # we want to keep all the edges coming from a target socket
-                if not item.socket.is_multi_edges:
-                    item.socket.removeAllEdges()
+                    # we want to keep all the edges coming from a start socket
+                    if not self.drag_start_socket.is_multi_edges:
+                        self.drag_start_socket.removeAllEdges()
 
-                # we want to keep all the edges coming from a start socket
-                if not self.drag_start_socket.is_multi_edges:
-                    self.drag_start_socket.removeAllEdges()
+                    new_edge = Edge(self.grScene.scene, self.drag_start_socket, item.socket, edge_type=EDGE_TYPE_BEZIER)
+                    if DEBUG: print("View::edgeDragEnd - created new edge:", new_edge, "connecting",
+                                    new_edge.start_socket, "<-->", new_edge.end_socket)
 
+                    for socket in [self.drag_start_socket, item.socket]:
+                        socket.node.onEdgeConnectionChanged(new_edge)
+                        if socket.is_input: socket.node.onInputChanged(new_edge)
 
+                    self.grScene.scene.history.storeHistory("Created new edge by dragging", setModified=True)
+                    return True
+        except Exception as e:
+            print("%s3 ERROR:",e.__class__.__name__ , e)
 
-                # if DEBUG: print('View::edgeDragEnd -   assign End Socket', item.socket)
-                # if self.previousEdge is not None: self.previousEdge.remove()
-                # if DEBUG: print('View::edgeDragEnd -   remove previous Edge:', self.previousEdge)
-                # self.drag_edge.start_socket = self.drag_start_socket
-                # self.drag_edge.end_socket = item.socket
-                # self.drag_edge.start_socket.addEdge(self.drag_edge)
-                # self.drag_edge.end_socket.addEdge(self.drag_edge)
-                # if DEBUG: print('View::edgeDragEnd -   assigned start & end sockets to drag edge')
-                # self.drag_edge.updatePosition()
-
-                new_edge = Edge(self.grScene.scene, self.drag_start_socket, item.socket, edge_type=EDGE_TYPE_BEZIER)
-                if DEBUG: print("View::edgeDragEnd - created new edge:", new_edge, "connecting",
-                                new_edge.start_socket, "<-->", new_edge.end_socket)
-
-                self.grScene.scene.history.storeHistory("Created new edge by dragging", setModified=True)
-                return True
-
-
-
-        # if DEBUG: print('View::edgeDragEnd -     about to set socket to previous Edge:', self.previousEdge)
-        # if self.previousEdge is not None:
-        #     self.previousEdge.start_socket.edges = self.previousEdge
 
         if DEBUG: print('View::edgeDragEnd - Done')
 

@@ -9,7 +9,7 @@ from nodeeditor.node_node import Node
 from examples.example_calculator.calc_node_base import *
 
 DEBUG = False
-DEBUG_CONTEXT = True
+DEBUG_CONTEXT = False
 
 class CalculatorSubWindow(NodeEditorWidget):
     def __init__(self):
@@ -27,9 +27,20 @@ class CalculatorSubWindow(NodeEditorWidget):
 
         self._close_event_listeners = []
 
+
     def getNodeClassFromData(self, data):
         if 'op_code' not in data: return Node
         return get_class_from_opcode(data['op_code'])
+
+    def fileLoad(self, filename):
+        if super().fileLoad(filename):
+            # eval all outputs nodes
+            for node in self.scene.nodes:
+                if node.__class__.__name__ == "CalcNode_Output":
+                    node.eval()
+            return True
+        return False
+
 
     def initNewNodeActions(self):
         self.node_actions = {}
@@ -170,7 +181,7 @@ class CalculatorSubWindow(NodeEditorWidget):
             scene_pos = self.scene.getView().mapToScene(event.pos())
             new_calc_node.setPos(scene_pos.x(), scene_pos.y())
             # self.scene.history.storeHistory("Created node %s" % new_calc_node.__class__.__name__)
-            print("Selected node:", new_calc_node.__class__.__name__)
+            if DEBUG_CONTEXT: print("Selected node:", new_calc_node.__class__.__name__)
             # return True
 
 

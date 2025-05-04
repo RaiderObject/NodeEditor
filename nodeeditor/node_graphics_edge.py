@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsItem
 from nodeeditor.node_socket import RIGHT_TOP, RIGHT_BOTTOM, LEFT_BOTTOM, LEFT_TOP
 
 EDGE_CP_ROUNDNESS = 100
-DEBUG = True
+DEBUG = False
 class QDMGraphicsEdge(QGraphicsPathItem):
     def __init__(self, edge, parent=None):
         super().__init__(parent)

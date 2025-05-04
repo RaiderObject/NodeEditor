@@ -10,7 +10,7 @@ from nodeeditor.node_editor_window import NodeEditorWindow
 from nodeeditor.utils import dumpException, loadStylesheets, pp
 from examples.example_calculator.calc_sub_window import CalculatorSubWindow
 from examples.example_calculator.calc_conf import CALC_NODES
-from examples.example_calculator.calc_conf_nodes import *
+
 
 DEBUG = False
 

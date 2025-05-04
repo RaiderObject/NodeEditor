@@ -110,6 +110,7 @@ class Edge(Serializable):
         self.start_socket = None
 
     def remove(self):
+        old_sockets = [self.start_socket, self.end_socket]
         if DEBUG: print("> Removing Edge", self)
         if DEBUG: print(" - Remove edge from all sockets")
         self.remove_from_sockets()
@@ -122,6 +123,15 @@ class Edge(Serializable):
         except ValueError:
             pass
         if DEBUG: print(" - Everything was done.")
+
+        try:
+            # notify nodes from old sockets
+            for socket in old_sockets:
+                if socket and socket.node:
+                    socket.node.onEdgeConnectionChanged(self)
+                    if socket.is_input: socket.node.onInputChanged(self)
+        except Exception as e:
+            print("%s ERROR: %s" % (e.__class__.__name__ , e))
 
     def serialize(self):
         return OrderedDict([

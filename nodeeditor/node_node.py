@@ -3,6 +3,7 @@ from nodeeditor.node_serializable import Serializable
 from nodeeditor.node_content_widget import QDMNodeContentWidget
 from nodeeditor.node_graphics_node import QDMGraphicsNode
 from nodeeditor.node_socket import *
+from nodeeditor.utils import dumpException
 
 DEBUG = False
 
@@ -66,6 +67,14 @@ class Node(Serializable):
                             socket_type=item, multi_edges=self.output_multi_edged,
                             count_on_this_node_side = len(outputs), is_input=False)
             self.outputs.append(socket)
+
+    def onEdgeConnectionChanged(self, new_edge):
+        print("%s::onEdgeConnectionChanged" % self.__class__.__name__, new_edge)
+
+    def onInputChanged(self, new_edge):
+        print("%s::onInputChanged" % self.__class__.__name__, new_edge)
+        self.markDirty()
+        self.markDescendantsDirty()
 
     def __str__(self):
         return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
@@ -162,17 +171,17 @@ class Node(Serializable):
 
     def markInvalid(self, new_value=True):
         self._is_invalid = new_value
-        if self._is_invalid: self.onMarkInvalid()
+        if self._is_invalid: self.onMarkedInvalid()
 
-    def onMarkInvalid(self): pass
+    def onMarkedInvalid(self): pass
 
     def markChildrenInvalid(self, new_value=True):
         for other_node in self.getChildrenNodes():
-            other_node.onMarkInvalid(new_value)
+            other_node.markInvalid(new_value)
 
-    def markDescendantInvalid(self, new_value=True):
+    def markDescendantsInvalid(self, new_value=True):
         for other_node in self.getChildrenNodes():
-            other_node.onMarkInvalid(new_value)
+            other_node.markInvalid(new_value)
             other_node.markChildrenInvalid(new_value)
 
 
@@ -196,6 +205,34 @@ class Node(Serializable):
                 other_node = edge.getOtherSocket(self.outputs[ix]).node
                 other_nodes.append(other_node)
         return other_nodes
+
+
+    def getInput(self, index=0):
+        try:
+            edge = self.inputs[index].edges[0]
+            socket = edge.getOtherSocket(self.inputs[index])
+            return socket.node
+        except IndexError:
+            print("EXC: Trying to get input, but none is attached to", self)
+            return None
+        except Exception as e:
+            dumpException(e)
+            return None
+
+
+    def getInputs(self, index=0):
+        ins = []
+        for edge in self.inputs[index].edges:
+            other_socket = edge.getOtherSocket(self.inputs[index])
+            ins.append(other_socket.node)
+        return ins
+
+    def getOutputs(self, index=0):
+        outs = []
+        for edge in self.outputs[index].edges:
+            other_socket = edge.getOtherSocket(self.outputs[index])
+            outs.append(other_socket.node)
+        return outs
 
 
     # serialization functions

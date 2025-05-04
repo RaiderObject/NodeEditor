@@ -52,6 +52,12 @@ class CalcNode(Node):
     def __init__(self, scene, inputs=[2,2], outputs=[1]):
         super().__init__(scene, self.__class__.op_title, inputs, outputs)
 
+        self.value = None
+
+
+        # it's really important to mark all nodes Dirty by Default
+        self.markDirty()
+
     def initInnerClasses(self):
         self.content = CalcContent(self)
         self.grNode = CalcGraphicsNode(self)
@@ -60,6 +66,53 @@ class CalcNode(Node):
         super().initSettings()
         self.input_socket_position = LEFT_CENTER
         self.output_socket_position = RIGHT_CENTER
+
+    def evalOperation(self, input1, input2):
+        return 123
+
+    def evalImplementation(self):
+        i1 = self.getInput(0)
+        i2 = self.getInput(1)
+
+        if i1 is None or i2 is None:
+            self.markInvalid()
+            self.markDescendantsDirty()
+            self.grNode.setToolTip("Connect all inputs")
+            return None
+        else:
+            val = self.evalOperation(i1.eval(), i2.eval())
+            self.value = val
+            self.markDirty(False)
+            self.markInvalid(False)
+            self.grNode.setToolTip("")
+
+            self.markDescendantsDirty()
+            self.evalChildren()
+
+            return val
+
+    def eval(self):
+        if not self.isDirty() and not self.isInvalid():
+            print(" _> returning cached value: %s %s" % (self.__class__.__name__, self.value))
+            return self.value
+        try:
+            val = self.evalImplementation()
+            return val
+        except ValueError as e:
+            self.markInvalid()
+            self.grNode.setToolTip(str(e))
+            self.markDescendantsDirty()
+        except Exception as e:
+            self.markInvalid()
+            self.grNode.setToolTip(str(e))
+            print("%s ERROR: %s" % (e.__class__.__name__, e))
+
+
+
+    def onInputChanged(self, new_edge):
+        print("%s::onInputChanged" % self.__class__.__name__, new_edge)
+        self.markDirty()
+        self.eval()
 
     def serialize(self):
         res = super().serialize()
