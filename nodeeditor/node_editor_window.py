@@ -200,7 +200,7 @@ class NodeEditorWindow(QMainWindow):
 
     def editDelete(self):
         if self.getCurrentNodeEditorWidget():
-            self.getCurrentNodeEditorWidget().scene.grScene.views()[0].deleteSelected()
+            self.getCurrentNodeEditorWidget().scene.getView().deleteSelected()
             self.statusBar().showMessage("Delete", 2000)
 
     def editCut(self):

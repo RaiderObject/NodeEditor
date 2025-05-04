@@ -4,7 +4,7 @@ from nodeeditor.node_edge import Edge
 from nodeeditor.node_graphics_edge import QDMGraphicsEdge
 from nodeeditor.node_node import Node
 
-DEBUG = True
+DEBUG = False
 class SceneClipboard():
     def __init__(self, scene):
         self.scene = scene
@@ -57,7 +57,7 @@ class SceneClipboard():
 
         # if CUT: aka delete -- remove items
         if delete:
-            self.scene.grScene.views()[0].deleteSelected()
+            self.scene.getView().deleteSelected()
             # store our history
             self.scene.history.storeHistory("Cut our elements from scene", setModified=True)
 
@@ -67,7 +67,7 @@ class SceneClipboard():
         hashmap = {}
 
         # calculate mouse pointer -- scene position
-        view = self.scene.grScene.views()[0]
+        view = self.scene.getView()
         mouse_scene_pos = view.last_scene_mouse_pos
         if DEBUG: print("view.last_scene_mouse_position", mouse_scene_pos)
 
